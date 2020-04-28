@@ -1,6 +1,13 @@
 <template>
   <div id="page">
     <!-- <calendar></calendar> -->
+    <FullCalendar 
+      :locales="locales" 
+      :plugins="calendarPlugins" 
+      :buttonText="buttonText" 
+      :header="header" 
+      :events="events"
+    >
     <div id="result">
       <div v-if="logedin" >
           <table>
@@ -21,35 +28,48 @@
        {{e}} 
     </div>
   </div>
-</template>
+</template>   
 
 <script>
-  // var CLIENT_ID = your CLIENT_ID
-  // var API_KEY = your API_KEY
+  //var CLIENT_ID = YOUR CLIENT ID
+  //var API_KEY = YOUR API KEY
+  import FullCalendar from '@fullcalendar/vue'
+  import dayGridPlugin from '@fullcalendar/daygrid'
+  import timeGridPlugin from '@fullcalendar/timegrid'
+  import frLocale from '@fullcalendar/core/locales/fr';
 
   const axios = require('axios').default;
-
-
-  import calendar from './calendar.vue'
 
   export default {
     name : 'oauth',
     data() {
-        return {
-          SCOPES :  'https://www.googleapis.com/auth/calendar.readonly',
-          DISCOVERY_DOCS : ["https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest"],
-          logedin: false,
-          gapi: null,
-          GoogleAuth: null,
-          events: [],
-          data:[],
-          newUser:"redha",
-          idChosen : "",
-          calendarInfo: [],
+      return {
+        SCOPES :  'https://www.googleapis.com/auth/calendar.readonly',
+        DISCOVERY_DOCS : ["https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest"],
+        logedin: false,
+        gapi: null,
+        GoogleAuth: null,
+        events: [],
+        data:[],
+        newUser:"redha",
+        idChosen : "",
+        calendarInfo: [],
+        calendarPlugins: [dayGridPlugin, timeGridPlugin],
+        locales: [frLocale],
+        buttonText: {
+          today: 'Aujourd\'hui',
+          month: 'Mois',
+          week: 'Semaine'
+        },
+        header: {
+          left: 'prev,next, today',
+          center: 'title',
+          right: 'dayGridMonth, timeGridWeek'
         }
+      }
     },
     components: {
-      calendar
+      FullCalendar
     },
     created() {
       var self = this;
@@ -105,6 +125,8 @@
       listUpcomingEvents: function(e) {
         var self = this;
         var target = e.target;
+        var start;
+        var end;
         self.onlyOneCheckbox(target.id);
         self.events.splice(0,self.events.length);
         if(!e.target.checked) {
@@ -114,14 +136,32 @@
           'calendarId': target.id,
         }).then(function(response) {
           var events = response.result.items;
-          if(events.length>0) {
+          if(events.length > 0) {
             for(let i = 0; i < events.length; i++) {
+              if (events[i].hasOwnProperty('start')) {
+                if(events[i].start.hasOwnProperty('date')){
+                  start = events[i].start.date;
+                }else if (events[i].start.hasOwnProperty('dateTime')) {
+                  start = events[i].start.dateTime;
+                }else {
+                  start = events[i].start;
+               }
+              }  
+              if (events[i].hasOwnProperty('end')) {
+                if(events[i].end.hasOwnProperty('date')){
+                  end = events[i].end.date;
+                }else if (events[i].end.hasOwnProperty('dateTime')) {
+                  end = events[i].end.dateTime;
+                }else {
+                  end = events[i].end;
+               }
+              }              
               let newEvent = {
                 id: events[i].id,
-                start: events[i].start,
-                end: events[i].end,
-                summary: events[i].summary,
-                updated: events[i].updated
+                start: start,
+                end: end,
+                title: events[i].summary,
+                // updated: events[i].updated
               };
               self.events.push(newEvent);
             }
@@ -157,7 +197,10 @@
 </script>
 
 <style type="text/css">
-#result {
-    text-align:center;
-}
+  @import '~@fullcalendar/core/main.css';
+  @import '~@fullcalendar/daygrid/main.css';
+  @import '~@fullcalendar/timegrid/main.css';
+  #result {
+      text-align:center;
+  }
 </style>

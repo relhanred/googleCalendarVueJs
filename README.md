@@ -6,6 +6,10 @@
 npm install
 ```
 
+## Variables setup
+
+setup your CLIENT_ID and your API_KEY in oauth.vue
+
 ### Compiles and hot-reloads for development
 ```
 npm run serve
