@@ -2,12 +2,14 @@
   <div id="page">
     <!-- <calendar></calendar> -->
     <FullCalendar 
-      :locales="locales" 
-      :plugins="calendarPlugins" 
-      :buttonText="buttonText" 
-      :header="header" 
-      :events="events"
-    >
+    id="calendar"
+    :locales="locales" 
+    :plugins="calendarPlugins" 
+    :buttonText="buttonText" 
+    :header="header" 
+    :events="events"
+    :height="height"
+    />
     <div id="result">
       <div v-if="logedin" >
           <table>
@@ -31,8 +33,8 @@
 </template>   
 
 <script>
-  //var CLIENT_ID = YOUR CLIENT ID
-  //var API_KEY = YOUR API KEY
+  // var CLIENT_ID = YOUR CLIENT ID
+  // var API_KEY = YOUR API KEY
   import FullCalendar from '@fullcalendar/vue'
   import dayGridPlugin from '@fullcalendar/daygrid'
   import timeGridPlugin from '@fullcalendar/timegrid'
@@ -51,6 +53,7 @@
         GoogleAuth: null,
         events: [],
         data:[],
+        height: 650,
         newUser:"redha",
         idChosen : "",
         calendarInfo: [],
@@ -201,6 +204,14 @@
   @import '~@fullcalendar/daygrid/main.css';
   @import '~@fullcalendar/timegrid/main.css';
   #result {
-      text-align:center;
+    text-align:center;
+  }
+  #calendar {
+    text-align:center;
+    width: 70%;
+    height: 5%;
+    margin-left: auto;
+    margin-right: auto;
+
   }
 </style>
