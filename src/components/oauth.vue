@@ -1,217 +1,217 @@
 <template>
   <div id="page">
     <!-- <calendar></calendar> -->
-    <FullCalendar 
-    id="calendar"
-    :locales="locales" 
-    :plugins="calendarPlugins" 
-    :buttonText="buttonText" 
-    :header="header" 
-    :events="events"
-    :height="height"
+    <FullCalendar
+      id="calendar"
+      :selectable="true"
+      :locales="locales"
+      :plugins="calendarPlugins"
+      :buttonText="buttonText"
+      :header="header"
+      :events="events"
+      :height="height"
+      @eventClick="eventClick"
+      @select="handleSelect"
     />
+    <modals-container />
     <div id="result">
-      <div v-if="logedin" >
-          <table>
-            <tr v-for="item in calendarInfo" :key="item.index">
-              <td>{{item.calendarId}}</td>
-              <td>{{item.calendarName}}</td>
-              <td><input type="checkbox" :id="item.calendarId" @click="listUpcomingEvents" v-model="item.calendarIs"></td>                                                            
-            </tr>
-          </table>
-          <button type="button" id="btn" class="btn btn-primary auth-btn" @click="getUsers">Obtenir</button> 
-          <button type="button" id="btn" class="btn btn-primary auth-btn" @click="addUsers">Ajouter</button> 
+      <div v-if="logedin">
+        <table>
+          <tr v-for="item in calendarInfo" :key="item.calendarId">
+            <td>{{ item.calendarId }}</td>
+            <td>{{ item.calendarName }}</td>
+            <td>
+              <input type="checkbox" @click="calendarSelector(item.calendarId)" :checked="item.calendarIs" />
+            </td>
+          </tr>
+        </table>
+        <div v-if="isCheckedCalendar">
+          <button type="button" class="btn btn-primary auth-btn" @click="getEventCalendar">Obtenir</button>
+          <!--          <button type="button" class="btn btn-primary auth-btn" @click="addUsers">Ajouter</button>-->
+        </div>
       </div>
       <div v-else>
-        <button type="button" id="btn" class="btn btn-primary auth-btn" @click="handleAuthClick">Synchroniser Google calendar</button>
+        <button type="button" id="btn" class="btn btn-primary auth-btn" @click="handleAuthClick">
+          Synchroniser Google calendar
+        </button>
       </div>
     </div>
-    <div v-for="e in events" :key="e.id">
-       {{e}} 
-    </div>
   </div>
-</template>   
+</template>
 
 <script>
-  // var CLIENT_ID = YOUR CLIENT ID
-  // var API_KEY = YOUR API KEY
-  import FullCalendar from '@fullcalendar/vue'
-  import dayGridPlugin from '@fullcalendar/daygrid'
-  import timeGridPlugin from '@fullcalendar/timegrid'
-  import frLocale from '@fullcalendar/core/locales/fr';
+import FullCalendar from "@fullcalendar/vue";
+import dayGridPlugin from "@fullcalendar/daygrid";
+import timeGridPlugin from "@fullcalendar/timegrid";
+import interactionPlugin from "@fullcalendar/interaction";
+import frLocale from "@fullcalendar/core/locales/fr";
+import axios from "axios";
+import EventDetails from './EventDetails'
+import DateDetails from './DateDetails'
 
-  const axios = require('axios').default;
+const CLIENT_ID = process.env.CLIENT_ID;
+const API_KEY = process.env.API_KEY;
+const scope = "https://www.googleapis.com/auth/calendar.readonly";
 
-  export default {
-    name : 'oauth',
-    data() {
-      return {
-        SCOPES :  'https://www.googleapis.com/auth/calendar.readonly',
-        DISCOVERY_DOCS : ["https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest"],
-        logedin: false,
-        gapi: null,
-        GoogleAuth: null,
-        events: [],
-        data:[],
-        height: 650,
-        newUser:"redha",
-        idChosen : "",
-        calendarInfo: [],
-        calendarPlugins: [dayGridPlugin, timeGridPlugin],
-        locales: [frLocale],
-        buttonText: {
-          today: 'Aujourd\'hui',
-          month: 'Mois',
-          week: 'Semaine'
-        },
-        header: {
-          left: 'prev,next, today',
-          center: 'title',
-          right: 'dayGridMonth, timeGridWeek'
+export default {
+  name: "oauth",
+  data() {
+    return {
+      logedin: false,
+      gapi: null,
+      GoogleAuth: null,
+      selectedCalendar: null,
+      events: [],
+      data: [],
+      height: 650,
+      newUser: "redha",
+      calendarInfo: [],
+      calendarPlugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
+      locales: [frLocale],
+      buttonText: {
+        today: "Aujourd'hui",
+        month: "Mois",
+        week: "Semaine",
+      },
+      header: {
+        left: "prev,next, today",
+        center: "title",
+        right: "dayGridMonth, timeGridWeek",
+      },
+    };
+  },
+  components: {
+    FullCalendar,
+  },
+  computed: {
+    isCheckedCalendar() {
+      return this.selectedCalendar !== null;
+    },
+  },
+  created() {
+    import("google-client-api")
+      .then((googleApi) => googleApi.default())
+      .then((googleApi) => {
+        this.gapi = googleApi;
+        this.gapi.load("client:auth2", this.initClient);
+      });
+  },
+  methods: {
+    eventClick(info){
+      this.$modal.show(EventDetails, {
+        event: info.event
+      })
+    },
+    handleSelect() {
+      //   this.$modal.show(DateDetails, {
+      //   event: info.event
+      // })
+      console.log("bonjour");
+    },
+    handleAuthClick() {
+      this.GoogleAuth.signIn();
+    },
+    initClient() {
+      this.gapi.client
+        .init({
+          apiKey: API_KEY,
+          clientId: CLIENT_ID,
+          discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest"],
+          scope,
+        })
+        .then(() => {
+          this.GoogleAuth = this.gapi.auth2.getAuthInstance();
+          this.GoogleAuth.isSignedIn.listen(this.updateSigninStatus);
+          this.updateSigninStatus(this.GoogleAuth.isSignedIn.get());
+        });
+    },
+    calendarSelector(calendarId) {
+      this.selectedCalendar = null;
+      this.calendarInfo.map((cal) => (cal.calendarIs = false));
+
+      const calendarFound = this.calendarInfo.find((cal) => cal.calendarId === calendarId);
+      if (typeof calendarFound !== "undefined") {
+        calendarFound.calendarIs = true;
+        this.selectedCalendar = calendarFound;
+      }
+    },
+    updateSigninStatus(isSignedIn) {
+      if (isSignedIn) {
+        const isAuthorized = this.GoogleAuth.currentUser.get().hasGrantedScopes(scope);
+
+        this.logedin = isAuthorized;
+        if (isAuthorized) {
+          this.getCalendarList();
         }
       }
     },
-    components: {
-      FullCalendar
-    },
-    created() {
-      var self = this;
-      import('google-client-api').then((googleApi)=>{
-        return googleApi.default();
-      }).then((googleApi)=>{
-         self.gapi = googleApi;
-         self.gapi.load('client:auth2', this.initClient);
+    getCalendarList() {
+      const request = this.gapi.client.calendar.calendarList.list();
+      request.execute((resp) => {
+        resp.items.map((item) => {
+          this.calendarInfo.push({
+            calendarId: item.id,
+            calendarName: item.summary,
+            calendarIs: false,
+          });
+        });
       });
-    },      
-    methods: {
-      handleAuthClick: function() {
-        this.GoogleAuth.signIn();
-      },
-      initClient: function() {
-        var self = this;
-        self.gapi.client.init({
-          apiKey:  API_KEY,
-          clientId: CLIENT_ID,
-          discoveryDocs: self.DISCOVERY_DOCS,
-          scope: self.SCOPES
-        }).then(function () {
-          self.GoogleAuth = self.gapi.auth2.getAuthInstance();
-          self.GoogleAuth.isSignedIn.listen(self.updateSigninStatus);
-          self.updateSigninStatus(self.GoogleAuth.isSignedIn.get());
+    },
+    async getEventCalendar() {
+      this.events = [];
+      const response = await this.gapi.client.calendar.events.list({
+        calendarId: this.selectedCalendar.calendarId,
+      });
+      response.result.items.map((event) => {
+        this.events.push({
+          id: event.id,
+          start: this.getEventDate(event, "start"),
+          end: this.getEventDate(event, "end"),
+          title: event.summary,
+          updated: event.updated,
+          status: 0,
+          calendarId: event.updated,
         });
-      },
-      updateSigninStatus: function(isSignedIn) {
-        if (isSignedIn) {
-          var user = this.GoogleAuth.currentUser.get();
-          var isAuthorized = user.hasGrantedScopes(this.SCOPES);
-          if (isAuthorized) {
-            this.logedin = true;
-            this.getCalendarList();
-          }
+      });
+     // this.saveCalendarId(this.selectedCalendar.calendarId).then(() => this.addEventApi(this.events));
+    },
+    getEventDate(event, name) {
+      if (event.hasOwnProperty(name)) {
+        if (event[name].hasOwnProperty("date")) {
+          return event[name].date;
         }
-      },
-      getCalendarList: function() {
-        var self = this;
-        var request = self.gapi.client.calendar.calendarList.list();
-        request.execute(function(resp){
-          var calendars = resp.items;
-          for (let i = 0; i < calendars.length; i++) {
-            let newCalendar = {
-              calendarId: calendars[i].id,
-              calendarName: calendars[i].summary,
-              calendarIs: false
-            }
-            self.calendarInfo.push(newCalendar);
-          }
-        });
-      },
-      listUpcomingEvents: function(e) {
-        var self = this;
-        var target = e.target;
-        var start;
-        var end;
-        self.onlyOneCheckbox(target.id);
-        self.events.splice(0,self.events.length);
-        if(!e.target.checked) {
-          return;
+
+        if (event[name].hasOwnProperty("dateTime")) {
+          return event[name].dateTime;
         }
-        self.gapi.client.calendar.events.list({
-          'calendarId': target.id,
-        }).then(function(response) {
-          var events = response.result.items;
-          if(events.length > 0) {
-            for(let i = 0; i < events.length; i++) {
-              if (events[i].hasOwnProperty('start')) {
-                if(events[i].start.hasOwnProperty('date')){
-                  start = events[i].start.date;
-                }else if (events[i].start.hasOwnProperty('dateTime')) {
-                  start = events[i].start.dateTime;
-                }else {
-                  start = events[i].start;
-               }
-              }  
-              if (events[i].hasOwnProperty('end')) {
-                if(events[i].end.hasOwnProperty('date')){
-                  end = events[i].end.date;
-                }else if (events[i].end.hasOwnProperty('dateTime')) {
-                  end = events[i].end.dateTime;
-                }else {
-                  end = events[i].end;
-               }
-              }              
-              let newEvent = {
-                id: events[i].id,
-                start: start,
-                end: end,
-                title: events[i].summary,
-                // updated: events[i].updated
-              };
-              self.events.push(newEvent);
-            }
-          }
-        });
-      },
-      onlyOneCheckbox : function(id) {
-        for(let i = 0; i < this.calendarInfo.length; i++ ) {
-            if (id != this.calendarInfo[i].calendarId) {
-              this.calendarInfo[i].calendarIs = false;
-            }
-        }
-      },
-      getUsers: function() {
-        var self = this;
-        self.data = [];
-        axios.get('https://jsonplaceholder.typicode.com/users')
-        .then( function (response) {
-          console.log(response)
-        });
-      },
-      addUsers: function() {
-        var self = this;
-        axios.post('https://jsonplaceholder.typicode.com/users', {
-          name: self.newUser
-        })
-        .then( function (response) {
-          console.log(response);
-        });
-      },
-    }
-  }
+      }
+    },
+    // addEventApi(events) {
+    //   axios.put("http://127.0.0.1:7000/bookings/calendar", events).then((response) => {
+    //     console.log(response, events);
+    //   });
+    // },
+    // async saveCalendarId(calendarId) {
+    //   return await axios.put("http://127.0.0.1:7000/studios/98d14153-843f-4f0e-8a93-4f2ea921f5d8", {
+    //     name: calendarId,
+    //   });
+    // },
+  },
+};
 </script>
 
 <style type="text/css">
-  @import '~@fullcalendar/core/main.css';
-  @import '~@fullcalendar/daygrid/main.css';
-  @import '~@fullcalendar/timegrid/main.css';
-  #result {
-    text-align:center;
-  }
-  #calendar {
-    text-align:center;
-    width: 70%;
-    height: 5%;
-    margin-left: auto;
-    margin-right: auto;
-
-  }
+@import "~@fullcalendar/core/main.css";
+@import "~@fullcalendar/daygrid/main.css";
+@import "~@fullcalendar/timegrid/main.css";
+#result {
+  text-align: center;
+}
+#calendar {
+  text-align: center;
+  width: 70%;
+  height: 5%;
+  margin-left: auto;
+  margin-right: auto;
+}
 </style>
