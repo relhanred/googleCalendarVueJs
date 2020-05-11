@@ -1,6 +1,5 @@
 <template>
   <div id="page">
-    <!-- <calendar></calendar> -->
     <FullCalendar
       id="calendar"
       :selectable="true"
@@ -11,7 +10,7 @@
       :events="events"
       :height="height"
       @eventClick="eventClick"
-      @select="handleSelect"
+      @dateClick="handleSelect"
     />
     <modals-container />
     <div id="result">
@@ -27,7 +26,6 @@
         </table>
         <div v-if="isCheckedCalendar">
           <button type="button" class="btn btn-primary auth-btn" @click="getEventCalendar">Obtenir</button>
-          <!--          <button type="button" class="btn btn-primary auth-btn" @click="addUsers">Ajouter</button>-->
         </div>
       </div>
       <div v-else>
@@ -64,7 +62,6 @@ export default {
       events: [],
       data: [],
       height: 650,
-      newUser: "redha",
       calendarInfo: [],
       calendarPlugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
       locales: [frLocale],
@@ -102,11 +99,10 @@ export default {
         event: info.event
       })
     },
-    handleSelect() {
-      //   this.$modal.show(DateDetails, {
-      //   event: info.event
-      // })
-      console.log("bonjour");
+    handleSelect(info) {
+        this.$modal.show(DateDetails, {
+        event: info
+      })
     },
     handleAuthClick() {
       this.GoogleAuth.signIn();

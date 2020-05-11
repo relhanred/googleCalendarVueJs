@@ -1,12 +1,8 @@
 <template>
   <div>
     <Table>
-      <thead>
-        Details
-      </thead>
       <tbody>
-        <tr>{{ event.start }}</tr>
-        <tr>{{ event.end }}</tr>
+        <tr>{{ this.start }}</tr>
     </tbody>
     </Table>
   </div>
@@ -26,8 +22,7 @@ export default {
     event: Object
   },
   mounted() {
-      this.start = this.event.start;
-      this.end = this.event.end;
+      this.start = this.event.date;
   }
 };
 </script>
